@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>角色卡制卡工具</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --pink:#FFCCDC;--pink-d:#e8a0b5;--pink-s:#fff5f8;
+  --black:#1C1C1C;--gray:#555;--gray-l:#BDBDBD;--gray-bg:#F5F5F5;
+  --white:#fff;--radius:12px;--shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:var(--gray-bg);color:var(--black);min-height:100vh;}
+header{background:var(--white);border-bottom:2px solid var(--pink);padding:16px 0 12px;text-align:center;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+header h1{font-size:1.5rem;font-weight:800;letter-spacing:6px;color:var(--pink-d);}
+
+/* toolbar */
+.toolbar{display:flex;justify-content:center;gap:8px;padding:12px 20px;background:var(--white);border-bottom:1px solid #eee;flex-wrap:wrap;}
+.tbtn{padding:7px 18px;border-radius:20px;border:1.5px solid #eee;background:var(--white);font-size:0.82rem;color:var(--gray);cursor:pointer;font-family:inherit;font-weight:500;display:inline-flex;align-items:center;gap:4px;}
+.tbtn:hover{border-color:var(--pink-d);color:var(--black);background:var(--pink-s);}
+.tbtn.danger{color:#ff6b6b;border-color:#ffcaca;}
+.tbtn.danger:hover{border-color:#ff6b6b;background:#fff5f5;color:#ff6b6b;}
+
+/* 预设区 */
+.preset-zone{background:var(--white);border-bottom:1px solid #eee;padding:10px 20px;}
+.preset-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.preset-top span{font-size:0.82rem;color:var(--gray);font-weight:600;}
+.pbtn{padding:5px 14px;border-radius:8px;border:1.5px solid #eee;background:var(--white);font-size:0.8rem;color:var(--gray);cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;}
+.pbtn:hover{border-color:var(--pink-d);color:var(--black);background:var(--pink-s);}
+.preset-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.preset-tag{display:inline-flex;align-items:center;gap:0;border-radius:8px;border:1.5px solid #eee;overflow:hidden;background:var(--white);}
+.preset-tag .ptload{padding:5px 10px;font-size:0.78rem;color:var(--gray);cursor:pointer;background:none;border:none;font-family:inherit;}
+.preset-tag .ptload:hover{background:var(--pink-s);color:var(--black);}
+.preset-tag .ptdel{padding:5px 8px;background:none;border:none;border-left:1px solid #eee;cursor:pointer;color:var(--gray-l);font-size:0.9rem;line-height:1;display:flex;align-items:center;}
+.preset-tag .ptdel:hover{background:#fff5f5;color:#ff6b6b;}
+.preset-empty{font-size:0.78rem;color:var(--gray-l);margin-top:6px;}
+
+main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
+
+/* 粘贴板 */
+.clip-panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;border:1px solid #eee;overflow:hidden;}
+.clip-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;}
+.clip-header:hover{background:var(--pink-s);}
+.clip-htitle{font-size:.93rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+.clip-arrow{color:var(--gray-l);font-size:.85rem;}
+.clip-body{border-top:1px solid #eee;padding:14px 18px;}
+.clip-body.hidden{display:none;}
+.clip-body textarea{width:100%;border:1.5px solid #eee;border-radius:10px;padding:10px 12px;font-size:.85rem;color:var(--black);background:var(--gray-bg);resize:vertical;min-height:90px;font-family:inherit;outline:none;margin-bottom:10px;}
+.clip-body textarea:focus{border-color:var(--pink-d);background:var(--white);}
+.clip-btn{padding:8px 22px;border-radius:20px;border:none;background:var(--pink);color:var(--black);font-size:.85rem;cursor:pointer;font-family:inherit;font-weight:700;}
+.clip-btn:hover{background:var(--pink-d);color:var(--white);}
+.clip-hint{font-size:.75rem;color:var(--gray-l);margin-top:8px;}
+
+/* sections */
+.sec-block{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;border:1px solid #eee;overflow:hidden;}
+.sec-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;}
+.sec-header:hover{background:var(--pink-s);}
+.toggle-icon{width:22px;height:22px;border-radius:50%;background:var(--pink);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:var(--black);flex-shrink:0;transition:transform .22s;}
+.toggle-icon.open{transform:rotate(45deg);}
+.sec-title-input{border:none;outline:none;font-size:.95rem;font-weight:700;color:var(--black);background:transparent;flex:1;font-family:inherit;}
+.sdel{padding:3px 10px;border-radius:8px;border:1.5px solid #eee;background:var(--white);font-size:.75rem;color:var(--gray-l);cursor:pointer;font-family:inherit;}
+.sdel:hover{border-color:#ff6b6b;color:#ff6b6b;}
+.sec-body{padding:0 16px 14px;border-top:1px solid #f0f0f0;}
+.sec-body.hidden{display:none;}
+.sub-item{margin-top:11px;}
+.sub-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;user-select:none;}
+.sub-toggle{width:17px;height:17px;border-radius:50%;background:var(--pink-s);border:1.5px solid var(--pink);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:var(--pink-d);flex-shrink:0;transition:transform .2s;}
+.sub-toggle.open{transform:rotate(45deg);}
+.sub-label-input{border:none;outline:none;font-size:.85rem;font-weight:600;color:var(--gray);background:transparent;flex:1;font-family:inherit;}
+.sub-del{padding:2px 8px;border-radius:6px;border:1.5px solid #eee;background:var(--white);font-size:.72rem;color:var(--gray-l);cursor:pointer;font-family:inherit;}
+.sub-del:hover{border-color:#ff6b6b;color:#ff6b6b;}
+.sub-content{padding-left:25px;}
+.sub-content.hidden{display:none;}
+.sub-content textarea,.sub-content select{width:100%;border:1.5px solid #eee;border-radius:9px;padding:8px 11px;font-size:.84rem;color:var(--black);background:var(--gray-bg);resize:vertical;min-height:56px;font-family:inherit;outline:none;}
+.sub-content textarea:focus,.sub-content select:focus{border-color:var(--pink-d);background:var(--white);}
+.sub-content select{min-height:unset;resize:none;}
+.add-sub-btn{display:flex;align-items:center;gap:5px;margin-top:10px;background:none;border:none;color:var(--pink-d);font-size:.8rem;cursor:pointer;font-family:inherit;padding:0;}
+.add-sub-btn:hover{color:var(--black);}
+.add-sec-wrap{text-align:center;margin:6px 0 18px;}
+.add-sec-btn{padding:9px 28px;border-radius:20px;border:1.5px dashed var(--pink-d);background:var(--white);color:var(--pink-d);font-size:.88rem;cursor:pointer;font-family:inherit;}
+.add-sec-btn:hover{background:var(--pink-s);color:var(--black);}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--black);color:var(--white);padding:10px 24px;border-radius:20px;font-size:.84rem;opacity:0;pointer-events:none;transition:all .28s;z-index:999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 弹窗 */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:500;display:flex;align-items:center;justify-content:center;}
+.modal-mask.hidden{display:none;}
+.modal-box{background:var(--white);border-radius:16px;padding:28px 24px 20px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.modal-box h3{font-size:1rem;font-weight:700;margin-bottom:16px;}
+.modal-box input{width:100%;border:1.5px solid #eee;border-radius:9px;padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none;color:var(--black);}
+.modal-box input:focus{border-color:var(--pink-d);}
+.modal-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.mbtn{padding:8px 20px;border-radius:10px;border:none;font-size:.85rem;cursor:pointer;font-family:inherit;font-weight:600;}
+.mbtn.confirm{background:var(--pink);color:var(--black);}
+.mbtn.confirm:hover{background:var(--pink-d);color:var(--white);}
+.mbtn.cancel{background:#f0f0f0;color:var(--gray);}
+.mbtn.cancel:hover{background:#e5e5e5;}
+</style>
+</head>
+<body>
+
+<header><h1>角色卡</h1></header>
+
+<div class="toolbar">
+  <button class="tbtn" onclick="copyAll()">复制全部</button>
+  <button class="tbtn" onclick="quickSave()">暂存预设</button>
+  <button class="tbtn" id="btnTxt" onclick="exportTxt()">导出 .txt</button>
+    <button class="tbtn danger" onclick="clearAll()">清空</button>
+</div>
+
+<div class="preset-zone">
+  <div class="preset-top">
+    <span>预设</span>
+    <button class="pbtn" onclick="openSaveModal()">＋ 新建预设</button>
+  </div>
+  <div class="preset-list" id="presetList"></div>
+  <div class="preset-empty hidden" id="presetEmpty">还没有保存的预设~</div>
+</div>
+
+<main>
+  <div class="clip-panel">
+    <div class="clip-header" onclick="toggleClip()">
+      <div class="clip-htitle">📋 智能粘贴板</div>
+      <div class="clip-arrow" id="clipArrow">▲</div>
+    </div>
+    <div class="clip-body" id="clipBody">
+      <textarea id="clipInput" placeholder="把角色描述文字粘贴到这里，点击「智能分配」自动填入对应栏目~"></textarea>
+      <button class="clip-btn" onclick="smartPaste()">✨ 智能分配</button>
+      <div class="clip-hint">支持「姓名：xxx」格式，根据关键词自动匹配对应栏目</div>
+    </div>
+  </div>
+  <div id="sectionsContainer"></div>
+  <div class="add-sec-wrap">
+    <button class="add-sec-btn" onclick="addSection()">＋ 添加大条目</button>
+  </div>
+</main>
+
+<div class="modal-mask hidden" id="saveModal" onclick="if(event.target===this)closeSaveModal()">
+  <div class="modal-box">
+    <h3>保存预设</h3>
+    <input type="text" id="presetNameInput" placeholder="请输入预设名称" maxlength="30" onkeydown="if(event.key==='Enter')confirmSavePreset()" />
+    <div class="modal-actions">
+      <button class="mbtn cancel" onclick="closeSaveModal()">取消</button>
+      <button class="mbtn confirm" onclick="confirmSavePreset()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT=[
+  {t:'世界观背景',subs:[{l:'世界观背景',tp:'ta',v:''}]},
+  {t:'基本信息',subs:[
+    {l:'姓名',tp:'ta',v:''},{l:'性别',tp:'sel',v:'',opts:['','男','女']},
+    {l:'年龄',tp:'ta',v:''},{l:'身高',tp:'ta',v:''},
+    {l:'生日',tp:'ta',v:''},{l:'文化程度',tp:'ta',v:''},
+    {l:'职业',tp:'ta',v:''},{l:'语言',tp:'ta',v:''}
+  ]},
+  {t:'外貌特征',subs:[{l:'外貌特征',tp:'ta',v:''}]},
+  {t:'性格',subs:[{l:'性格',tp:'ta',v:''}]},
+  {t:'喜恶',subs:[{l:'喜恶',tp:'ta',v:''}]},
+  {t:'说话特点',subs:[{l:'说话特点',tp:'ta',v:''}]},
+  {t:'NSFW',subs:[{l:'性取向',tp:'ta',v:''},{l:'性经验',tp:'ta',v:''},{l:'Kink',tp:'ta',v:''}]},
+  {t:'社交',subs:[{l:'社交',tp:'ta',v:''}]},
+  {t:'NPC们',subs:[{l:'NPC们',tp:'ta',v:''}]},
+];
+
+let secs=clone(DEFAULT);
+let secOpen=secs.map(()=>true);
+let subOpen=secs.map(s=>s.subs.map(()=>true));
+
+function clone(o){return JSON.parse(JSON.stringify(o));}
+
+function render(){
+  const c=document.getElementById('sectionsContainer');
+  c.innerHTML='';
+  secs.forEach((s,si)=>{
+    const d=document.createElement('div');
+    d.className='sec-block';
+    d.innerHTML=`
+      <div class="sec-header" onclick="toggleSec(${si})">
+        <div class="toggle-icon ${secOpen[si]?'open':''}" id="si${si}">＋</div>
+        <input class="sec-title-input" value="${esc(s.t)}" onclick="event.stopPropagation()" oninput="secs[${si}].t=this.value">
+        <div onclick="event.stopPropagation()"><button class="sdel" onclick="delSec(${si})">删除</button></div>
+      </div>
+      <div class="sec-body ${secOpen[si]?'':'hidden'}" id="sb${si}">
+        ${s.subs.map((sub,subI)=>renderSub(si,subI,sub)).join('')}
+        <button class="add-sub-btn" onclick="addSub(${si})">＋ 添加子条目</button>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+function renderSub(si,subI,sub){
+  const open=subOpen[si]&&subOpen[si][subI];
+  let inp='';
+  if(sub.tp==='sel'){
+    const opts=(sub.opts||['','男','女']).map(o=>`<option value="${esc(o)}" ${sub.v===o?'selected':''}>${o||'请选择'}</option>`).join('');
+    inp=`<select onchange="secs[${si}].subs[${subI}].v=this.value">${opts}</select>`;
+  }else{
+    inp=`<textarea oninput="secs[${si}].subs[${subI}].v=this.value" placeholder="在这里输入...">${esc(sub.v)}</textarea>`;
+  }
+  return `<div class="sub-item">
+    <div class="sub-header" onclick="toggleSub(${si},${subI})">
+      <div class="sub-toggle ${open?'open':''}" id="subI${si}_${subI}">＋</div>
+      <input class="sub-label-input" value="${esc(sub.l)}" onclick="event.stopPropagation()" oninput="secs[${si}].subs[${subI}].l=this.value">
+      <div onclick="event.stopPropagation()"><button class="sub-del" onclick="delSub(${si},${subI})">删除</button></div>
+    </div>
+    <div class="sub-content ${open?'':'hidden'}" id="subb${si}_${subI}">${inp}</div>
+  </div>`;
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function toggleSec(si){secOpen[si]=!secOpen[si];document.getElementById('sb'+si).classList.toggle('hidden',!secOpen[si]);document.getElementById('si'+si).classList.toggle('open',secOpen[si]);}
+function toggleSub(si,subI){subOpen[si][subI]=!subOpen[si][subI];document.getElementById('subb'+si+'_'+subI).classList.toggle('hidden',!subOpen[si][subI]);document.getElementById('subI'+si+'_'+subI).classList.toggle('open',subOpen[si][subI]);}
+function addSection(){secs.push({t:'新条目',subs:[{l:'内容',tp:'ta',v:''}]});secOpen.push(true);subOpen.push([true]);render();}
+function delSec(si){secs.splice(si,1);secOpen.splice(si,1);subOpen.splice(si,1);render();}
+function addSub(si){secs[si].subs.push({l:'子条目',tp:'ta',v:''});subOpen[si].push(true);render();}
+function delSub(si,subI){secs[si].subs.splice(subI,1);subOpen[si].splice(subI,1);render();}
+
+function toggleClip(){
+  const b=document.getElementById('clipBody'),a=document.getElementById('clipArrow');
+  b.classList.toggle('hidden');a.textContent=b.classList.contains('hidden')?'▼':'▲';
+}
+
+function smartPaste(){
+  const text=document.getElementById('clipInput').value;
+  if(!text.trim()){toast('粘贴板是空的~');return;}
+  const rules=[
+    {keys:['姓名','名字'],sT:'基本信息',sL:'姓名'},{keys:['性别'],sT:'基本信息',sL:'性别'},
+    {keys:['年龄','岁'],sT:'基本信息',sL:'年龄'},{keys:['身高'],sT:'基本信息',sL:'身高'},
+    {keys:['生日','出生'],sT:'基本信息',sL:'生日'},{keys:['文化','学历'],sT:'基本信息',sL:'文化程度'},
+    {keys:['职业','工作'],sT:'基本信息',sL:'职业'},{keys:['语言'],sT:'基本信息',sL:'语言'},
+    {keys:['外貌','外表','长相','发色'],sT:'外貌特征',sL:'外貌特征'},
+    {keys:['性格','个性'],sT:'性格',sL:'性格'},{keys:['喜欢','讨厌','喜恶','爱好'],sT:'喜恶',sL:'喜恶'},
+    {keys:['说话','口癖','口头禅'],sT:'说话特点',sL:'说话特点'},
+    {keys:['世界观','背景设定'],sT:'世界观背景',sL:'世界观背景'},
+    {keys:['社交','人际'],sT:'社交',sL:'社交'},{keys:['NPC'],sT:'NPC们',sL:'NPC们'},
+    {keys:['性取向'],sT:'NSFW',sL:'性取向'},{keys:['性经验'],sT:'NSFW',sL:'性经验'},{keys:['kink','Kink'],sT:'NSFW',sL:'Kink'},
+  ];
+  let matched=0;
+  text.split('\n').forEach(line=>{
+    const t=line.trim();if(!t)return;
+    for(const r of rules){
+      if(r.keys.some(k=>t.includes(k))){
+        const sec=secs.find(s=>s.t===r.sT);
+        if(sec){const sub=sec.subs.find(s=>s.l===r.sL);
+          if(sub){const i=t.indexOf('：')!==-1?t.indexOf('：'):t.indexOf(':');sub.v=i!==-1?t.slice(i+1).trim():t;matched++;}}
+        break;
+      }
+    }
+  });
+  render();toast(matched>0?`已分配 ${matched} 条~`:'没匹配到，可手动填写');
+}
+
+function getAllText(){
+  return secs.map(s=>{
+    if(s.subs.length===1&&s.subs[0].l===s.t) return `【${s.t}】\n${s.subs[0].v||''}`;
+    return `【${s.t}】\n${s.subs.map(sub=>`${sub.l}：${sub.v||''}`).join('\n')}`;
+  }).join('\n\n');
+}
+
+function copyAll(){
+  const text=getAllText();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('已复制~')).catch(()=>fbCopy(text));
+  }else{fbCopy(text);}
+}
+function fbCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');toast('已复制~');}catch{toast('复制失败，请手动选取');}
+  document.body.removeChild(ta);
+}
+
+function exportTxt(){
+  const text=getAllText();
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  triggerDownload(url,'角色卡.txt');
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function triggerDownload(dataUrl,filename){
+  const a=document.createElement('a');
+  a.href=dataUrl;a.download=filename;a.style.display='none';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('导出成功~');
+}
+
+function clearAll(){
+  if(!confirm('确认清空所有内容？'))return;
+  secs=clone(DEFAULT);secOpen=secs.map(()=>true);subOpen=secs.map(s=>s.subs.map(()=>true));
+  render();toast('已清空~');
+}
+
+// 预设
+function getPresets(){try{return JSON.parse(localStorage.getItem('rcp')||'{}');}catch{return {};}}
+function savePresets(p){try{localStorage.setItem('rcp',JSON.stringify(p));}catch{}}
+
+function renderPresets(){
+  const p=getPresets();const keys=Object.keys(p);
+  const list=document.getElementById('presetList');
+  const empty=document.getElementById('presetEmpty');
+  list.innerHTML='';
+  if(keys.length===0){empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+  keys.forEach(name=>{
+    const tag=document.createElement('div');
+    tag.className='preset-tag';
+    tag.innerHTML=`<button class="ptload" onclick="loadPreset('${name.replace(/'/g,"\\'")}')">📁 ${name}</button><button class="ptdel" title="删除" onclick="deletePreset('${name.replace(/'/g,"\\'")}')">🗑</button>`;
+    list.appendChild(tag);
+  });
+}
+
+function openSaveModal(){
+  document.getElementById('presetNameInput').value='';
+  document.getElementById('saveModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('presetNameInput').focus(),50);
+}
+function closeSaveModal(){document.getElementById('saveModal').classList.add('hidden');}
+function confirmSavePreset(){
+  const name=document.getElementById('presetNameInput').value.trim();
+  if(!name){toast('请输入预设名称');return;}
+  const p=getPresets();p[name]={secs:clone(secs)};
+  savePresets(p);renderPresets();closeSaveModal();toast('预设已保存~');
+}
+
+function quickSave(){
+  const p=getPresets();const keys=Object.keys(p);
+  if(keys.length===0){openSaveModal();return;}
+  // 暂存到最后一个预设
+  const last=keys[keys.length-1];
+  p[last]={secs:clone(secs)};savePresets(p);toast('已暂存到「'+last+'」~');
+}
+function loadPreset(name){
+  const p=getPresets();const preset=p[name];
+  if(!preset){toast('预设不存在');return;}
+  secs=clone(preset.secs);secOpen=secs.map(()=>true);subOpen=secs.map(s=>s.subs.map(()=>true));
+  render();toast('已加载「'+name+'」~');
+}
+function deletePreset(name){
+  if(!confirm('删除预设「'+name+'」？'))return;
+  const p=getPresets();delete p[name];savePresets(p);renderPresets();toast('已删除~');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+render();renderPresets();
+</script>
+</body>
+</html>

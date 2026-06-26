@@ -113,7 +113,6 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
 <div class="preset-zone">
   <div class="preset-top">
     <span>预设</span>
-    <!-- 原“新建预设”按钮已移除 -->
   </div>
   <div class="preset-list" id="presetList"></div>
   <div class="preset-empty hidden" id="presetEmpty">还没有保存的预设~</div>
@@ -137,7 +136,7 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
   </div>
 </main>
 
-<!-- 新建预设弹窗（原有） -->
+<!-- 新建预设弹窗 -->
 <div class="modal-mask hidden" id="saveModal" onclick="if(event.target===this)closeSaveModal()">
   <div class="modal-box">
     <h3>保存预设</h3>
@@ -149,7 +148,7 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
   </div>
 </div>
 
-<!-- 选择预设弹窗（用于“保存”按钮） -->
+<!-- 选择预设弹窗 -->
 <div class="modal-mask hidden" id="selectPresetModal" onclick="if(event.target===this)closeSelectPresetModal()">
   <div class="modal-box">
     <h3>选择要保存到的预设</h3>
@@ -165,18 +164,15 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
 <script>
 const DEFAULT=[
   {t:'世界观背景',subs:[{l:'世界观背景',tp:'ta',v:''}]},
-  {t:'基本信息',subs:[
-    {l:'姓名',tp:'ta',v:''},{l:'性别',tp:'sel',v:'',opts:['','男','女']},
-    {l:'生日/年龄',tp:'ta',v:''},{l:'身高',tp:'ta',v:''},
-    {l:'文化程度',tp:'ta',v:''},
-    {l:'职业',tp:'ta',v:''},{l:'语言',tp:'ta',v:''}
+  {t:'基本信息',subs:[{l:'',tp:'ta',v:''}]},
+  {t:'特征/特质',subs:[
+    {l:'外貌特征',tp:'ta',v:''},
+    {l:'性格',tp:'ta',v:''},
+    {l:'喜恶',tp:'ta',v:''}
   ]},
-  {t:'外貌特征',subs:[{l:'外貌特征',tp:'ta',v:''}]},
-  {t:'性格',subs:[{l:'性格',tp:'ta',v:''}]},
-  {t:'喜恶',subs:[{l:'喜恶',tp:'ta',v:''}]},
   {t:'说话特点',subs:[{l:'说话特点',tp:'ta',v:''}]},
-  {t:'NSFW',subs:[{l:'性取向',tp:'ta',v:''},{l:'性经验',tp:'ta',v:''},{l:'Kink',tp:'ta',v:''}]},
-  {t:'社交',subs:[{l:'社交',tp:'ta',v:''}]},
+  {t:'NSFW',subs:[{l:'性取向',tp:'ta',v:''},{l:'性经验和癖好',tp:'ta',v:''},{l:'Kink',tp:'ta',v:''}]},
+  {t:'user相关',subs:[{l:'',tp:'ta',v:''}]},
   {t:'NPC们',subs:[{l:'NPC们',tp:'ta',v:''}]},
 ];
 
@@ -192,6 +188,24 @@ function render(){
   secs.forEach((s,si)=>{
     const d=document.createElement('div');
     d.className='sec-block';
+    let bodyHtml = '';
+    if (s.t === '基本信息') {
+      bodyHtml = `
+        <div style="padding:0 0 10px;">
+          <div style="color:var(--black); font-size:0.78rem; margin-bottom:6px;">姓名，性别，生日/年龄，身高，职业，语言……</div>
+          <textarea oninput="secs[${si}].subs[0].v=this.value" placeholder="在此填写基本信息..." style="width:100%;border:1.5px solid #eee;border-radius:9px;padding:10px 12px;font-size:.86rem;color:var(--black);background:var(--gray-bg);resize:vertical;min-height:80px;font-family:inherit;outline:none;">${esc(s.subs[0].v)}</textarea>
+        </div>`;
+    } else if (s.t === 'user相关') {
+      bodyHtml = `
+        <div style="padding:0 0 10px;">
+          <div style="color:var(--black); font-size:0.78rem; margin-bottom:6px;">user基本信息，与char的关系……</div>
+          <textarea oninput="secs[${si}].subs[0].v=this.value" placeholder="在此填写user相关信息..." style="width:100%;border:1.5px solid #eee;border-radius:9px;padding:10px 12px;font-size:.86rem;color:var(--black);background:var(--gray-bg);resize:vertical;min-height:80px;font-family:inherit;outline:none;">${esc(s.subs[0].v)}</textarea>
+        </div>`;
+    } else {
+      bodyHtml = `
+        ${s.subs.map((sub,subI)=>renderSub(si,subI,sub)).join('')}
+        <button class="add-sub-btn" onclick="addSub(${si})">＋ 添加子条目</button>`;
+    }
     d.innerHTML=`
       <div class="sec-header" onclick="toggleSec(${si})">
         <div class="toggle-icon ${secOpen[si]?'open':''}" id="si${si}">＋</div>
@@ -199,8 +213,7 @@ function render(){
         <div onclick="event.stopPropagation()"><button class="sdel" onclick="delSec(${si})">删除</button></div>
       </div>
       <div class="sec-body ${secOpen[si]?'':'hidden'}" id="sb${si}">
-        ${s.subs.map((sub,subI)=>renderSub(si,subI,sub)).join('')}
-        <button class="add-sub-btn" onclick="addSub(${si})">＋ 添加子条目</button>
+        ${bodyHtml}
       </div>`;
     c.appendChild(d);
   });
@@ -243,17 +256,24 @@ function smartPaste(){
   const text=document.getElementById('clipInput').value;
   if(!text.trim()){toast('粘贴板是空的~');return;}
   const rules=[
-    {keys:['姓名','名字'],sT:'基本信息',sL:'姓名'},{keys:['性别'],sT:'基本信息',sL:'性别'},
-    {keys:['年龄','岁'],sT:'基本信息',sL:'生日/年龄'},{keys:['生日','出生'],sT:'基本信息',sL:'生日/年龄'},
-    {keys:['身高'],sT:'基本信息',sL:'身高'},
-    {keys:['文化','学历'],sT:'基本信息',sL:'文化程度'},
-    {keys:['职业','工作'],sT:'基本信息',sL:'职业'},{keys:['语言'],sT:'基本信息',sL:'语言'},
-    {keys:['外貌','外表','长相','发色'],sT:'外貌特征',sL:'外貌特征'},
-    {keys:['性格','个性'],sT:'性格',sL:'性格'},{keys:['喜欢','讨厌','喜恶','爱好'],sT:'喜恶',sL:'喜恶'},
+    {keys:['姓名','名字'],sT:'基本信息',sL:''},
+    {keys:['性别'],sT:'基本信息',sL:''},
+    {keys:['年龄','岁'],sT:'基本信息',sL:''},
+    {keys:['生日','出生'],sT:'基本信息',sL:''},
+    {keys:['身高'],sT:'基本信息',sL:''},
+    {keys:['文化','学历'],sT:'基本信息',sL:''},
+    {keys:['职业','工作'],sT:'基本信息',sL:''},
+    {keys:['语言'],sT:'基本信息',sL:''},
+    {keys:['外貌','外表','长相','发色'],sT:'特征/特质',sL:'外貌特征'},
+    {keys:['性格','个性'],sT:'特征/特质',sL:'性格'},
+    {keys:['喜欢','讨厌','喜恶','爱好'],sT:'特征/特质',sL:'喜恶'},
     {keys:['说话','口癖','口头禅'],sT:'说话特点',sL:'说话特点'},
     {keys:['世界观','背景设定'],sT:'世界观背景',sL:'世界观背景'},
-    {keys:['社交','人际'],sT:'社交',sL:'社交'},{keys:['NPC'],sT:'NPC们',sL:'NPC们'},
-    {keys:['性取向'],sT:'NSFW',sL:'性取向'},{keys:['性经验'],sT:'NSFW',sL:'性经验'},{keys:['kink','Kink'],sT:'NSFW',sL:'Kink'},
+    {keys:['社交','人际'],sT:'user相关',sL:''},
+    {keys:['NPC'],sT:'NPC们',sL:'NPC们'},
+    {keys:['性取向'],sT:'NSFW',sL:'性取向'},
+    {keys:['性经验','癖好'],sT:'NSFW',sL:'性经验和癖好'},
+    {keys:['kink','Kink'],sT:'NSFW',sL:'Kink'},
   ];
   let matched=0;
   text.split('\n').forEach(line=>{
@@ -261,8 +281,24 @@ function smartPaste(){
     for(const r of rules){
       if(r.keys.some(k=>t.includes(k))){
         const sec=secs.find(s=>s.t===r.sT);
-        if(sec){const sub=sec.subs.find(s=>s.l===r.sL);
-          if(sub){const i=t.indexOf('：')!==-1?t.indexOf('：'):t.indexOf(':');sub.v=i!==-1?t.slice(i+1).trim():t;matched++;}}
+        if(sec){
+          if (r.sL === '' && (r.sT === '基本信息' || r.sT === 'user相关')) {
+            // 大文本框，追加内容
+            const i = t.indexOf('：')!==-1 ? t.indexOf('：') : t.indexOf(':');
+            const val = i !== -1 ? t.slice(i+1).trim() : t;
+            if (val) {
+              sec.subs[0].v += (sec.subs[0].v ? '\n' : '') + r.keys[0] + '：' + val;
+              matched++;
+            }
+          } else {
+            const sub = sec.subs.find(s=>s.l===r.sL);
+            if(sub){
+              const i = t.indexOf('：')!==-1 ? t.indexOf('：') : t.indexOf(':');
+              sub.v = i !== -1 ? t.slice(i+1).trim() : t;
+              matched++;
+            }
+          }
+        }
         break;
       }
     }
@@ -272,6 +308,10 @@ function smartPaste(){
 
 function getAllText(){
   return secs.map(s=>{
+    if(s.t === '基本信息' || s.t === 'user相关'){
+      // 只输出标题和用户填写的内容，不输出说明文字
+      return `【${s.t}】\n${s.subs[0].v||''}`;
+    }
     if(s.subs.length===1&&s.subs[0].l===s.t) return `【${s.t}】\n${s.subs[0].v||''}`;
     return `【${s.t}】\n${s.subs.map(sub=>`${sub.l}：${sub.v||''}`).join('\n')}`;
   }).join('\n\n');
@@ -343,16 +383,13 @@ function confirmSavePreset(){
   savePresets(p);renderPresets();closeSaveModal();toast('预设已保存~');
 }
 
-// 修改后的 quickSave 函数：弹出预设选择窗口，底部增加“新建预设”按钮
 function quickSave(){
   const presets = getPresets();
   const keys = Object.keys(presets);
   if (keys.length === 0) {
-    // 无预设时直接弹出新建窗口
     openSaveModal();
     return;
   }
-  // 填充预设列表
   const listDiv = document.getElementById('presetSelectList');
   listDiv.innerHTML = '';
   keys.forEach(name => {
@@ -371,7 +408,6 @@ function quickSave(){
     };
     listDiv.appendChild(btn);
   });
-  // 添加“新建预设”按钮
   const newBtn = document.createElement('button');
   newBtn.className = 'pbtn';
   newBtn.textContent = '＋ 新建预设';
@@ -383,7 +419,6 @@ function quickSave(){
     openSaveModal();
   };
   listDiv.appendChild(newBtn);
-
   document.getElementById('selectPresetModal').classList.remove('hidden');
 }
 function closeSelectPresetModal(){

@@ -105,7 +105,7 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
 
 <div class="toolbar">
   <button class="tbtn" onclick="copyAll()">复制全部</button>
-  <button class="tbtn" onclick="quickSave()">暂存预设</button>
+  <button class="tbtn" onclick="quickSave()">保存</button>
   <button class="tbtn" id="btnTxt" onclick="exportTxt()">导出 .txt</button>
     <button class="tbtn danger" onclick="clearAll()">清空</button>
 </div>
@@ -113,7 +113,7 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
 <div class="preset-zone">
   <div class="preset-top">
     <span>预设</span>
-    <button class="pbtn" onclick="openSaveModal()">＋ 新建预设</button>
+    <!-- 原“新建预设”按钮已移除 -->
   </div>
   <div class="preset-list" id="presetList"></div>
   <div class="preset-empty hidden" id="presetEmpty">还没有保存的预设~</div>
@@ -137,6 +137,7 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
   </div>
 </main>
 
+<!-- 新建预设弹窗（原有） -->
 <div class="modal-mask hidden" id="saveModal" onclick="if(event.target===this)closeSaveModal()">
   <div class="modal-box">
     <h3>保存预设</h3>
@@ -144,6 +145,17 @@ main{max-width:780px;margin:22px auto;padding:0 16px 120px;}
     <div class="modal-actions">
       <button class="mbtn cancel" onclick="closeSaveModal()">取消</button>
       <button class="mbtn confirm" onclick="confirmSavePreset()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 选择预设弹窗（用于“保存”按钮） -->
+<div class="modal-mask hidden" id="selectPresetModal" onclick="if(event.target===this)closeSelectPresetModal()">
+  <div class="modal-box">
+    <h3>选择要保存到的预设</h3>
+    <div id="presetSelectList" style="margin: 12px 0;"></div>
+    <div class="modal-actions">
+      <button class="mbtn cancel" onclick="closeSelectPresetModal()">取消</button>
     </div>
   </div>
 </div>
@@ -331,13 +343,53 @@ function confirmSavePreset(){
   savePresets(p);renderPresets();closeSaveModal();toast('预设已保存~');
 }
 
+// 修改后的 quickSave 函数：弹出预设选择窗口，底部增加“新建预设”按钮
 function quickSave(){
-  const p=getPresets();const keys=Object.keys(p);
-  if(keys.length===0){openSaveModal();return;}
-  // 暂存到最后一个预设
-  const last=keys[keys.length-1];
-  p[last]={secs:clone(secs)};savePresets(p);toast('已暂存到「'+last+'」~');
+  const presets = getPresets();
+  const keys = Object.keys(presets);
+  if (keys.length === 0) {
+    // 无预设时直接弹出新建窗口
+    openSaveModal();
+    return;
+  }
+  // 填充预设列表
+  const listDiv = document.getElementById('presetSelectList');
+  listDiv.innerHTML = '';
+  keys.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'pbtn';
+    btn.textContent = '📁 ' + name;
+    btn.style.display = 'block';
+    btn.style.width = '100%';
+    btn.style.marginBottom = '6px';
+    btn.onclick = function() {
+      const p = getPresets();
+      p[name] = {secs: clone(secs)};
+      savePresets(p);
+      closeSelectPresetModal();
+      toast('已保存到「' + name + '」~');
+    };
+    listDiv.appendChild(btn);
+  });
+  // 添加“新建预设”按钮
+  const newBtn = document.createElement('button');
+  newBtn.className = 'pbtn';
+  newBtn.textContent = '＋ 新建预设';
+  newBtn.style.display = 'block';
+  newBtn.style.width = '100%';
+  newBtn.style.marginTop = '8px';
+  newBtn.onclick = function() {
+    closeSelectPresetModal();
+    openSaveModal();
+  };
+  listDiv.appendChild(newBtn);
+
+  document.getElementById('selectPresetModal').classList.remove('hidden');
 }
+function closeSelectPresetModal(){
+  document.getElementById('selectPresetModal').classList.add('hidden');
+}
+
 function loadPreset(name){
   const p=getPresets();const preset=p[name];
   if(!preset){toast('预设不存在');return;}
